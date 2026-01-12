@@ -4,7 +4,7 @@ This repository contains the official Python implementation and datasets associa
 
 The project provides tools for simulating and analysing observations of the Earth's plasma environment from a lunar perspective. It includes:
 
-- Data: processed datasets used in the study
+- Data: processed data is available on [Zenodo](10.5281/zenodo.18220778)
 
 - Analysis Code: Python notebooks for data processing and visualization
 
