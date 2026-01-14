@@ -23,7 +23,7 @@
             border-left: 5px solid #64B5F6;
         }
         h1 { color: #64B5F6; margin-top: 0; }
-        
+
         .controls { margin-bottom: 20px; }
         select {
             padding: 10px;
@@ -43,7 +43,7 @@
             box-shadow: 0 10px 30px rgba(0,0,0,0.5);
             line-height: 0;
         }
-        
+
         iframe {
             width: 100%;
             height: 100%;
@@ -69,15 +69,21 @@
             <div class="controls">
                 <label for="sat-select"><strong>Select SV: </strong></label>
                 <select id="sat-select" onchange="document.getElementById('plot-iframe').src = this.value">
-                    <option value="plot_E02.html">E02</option>
-<option value="plot_G24.html">G24</option>
-<option value="plot_G30.html">G30</option>
+                    <option value="plot_E02.html">E02 — 03-03-2025, 06:50 UT</option>
+<option value="plot_G24.html">G24 — 14-03-2025, 20:50 UT</option>
+<option value="plot_G30.html">G30 — 15-03-2025, 05:25 UT</option>
 
                 </select>
             </div>
-            <p><strong>Description:</strong> 3D visualization of electron density along the orbital trajectory.
-               The Earth is rendered with baked lighting based on the Sun's actual position. 
-               The color scale represents the logarithmic density of electrons.</p>
+            <p><strong>Description:</strong> Schematic representation of the signal propagation path from 
+                GNSS satellites to the receiver located on the lunar surface. 
+                The color scale represents the <strong>electron plasma density</strong>, modeled using the Global 
+                Core Plasma Model (GCPM).
+            </p>
+            <p style="font-size: 0.8em; opacity: 0.8; line-height: 1.5;">
+                The visualization accounts for the specific Sun-Earth geometry at the time of acquisition: 
+                the Earth's orientation and lighting are rendered based on the Sun's actual position to distinguish between dayside (Moon sunward of Earth) and nightside (Moon located within Earth's magnetosphere) lunar phases.
+            </p>
         </div>
 
         <div id="plot-container">
