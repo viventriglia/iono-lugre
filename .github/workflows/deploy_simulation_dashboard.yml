@@ -20,12 +20,12 @@ jobs:
       - name: Verify generated files
         run: |
           ls docs/index.html || exit 1
-          # ls docs/plot_E02.html || exit 1
 
       - name: Broken Link Checker
         uses: lycheeverse/lychee-action@v1.9.0
         with:
           args: --verbose --no-progress README.md docs/*.html
+          fail: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

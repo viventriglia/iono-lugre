@@ -33,4 +33,4 @@ This project leverages data from the <b>Lunar GNSS Receiver Experiment</b> (<b>[
 
 ## Data Access
 
-The pre-processed GNSS dataset is available on [Zenodo](10.5281/zenodo.18220778).
+The pre-processed GNSS dataset is available on [Zenodo](https://zenodo.org/records/18220778).
