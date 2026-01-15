@@ -34,7 +34,28 @@
             cursor: pointer;
         }
 
+        .loader {
+            border: 4px solid #1a1d21;
+            border-top: 4px solid #64B5F6;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            margin-top: -20px;
+            margin-left: -20px;
+            z-index: 0;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
         #plot-container {
+            position: relative;
             width: 100%;
             height: 750px;
             background: #000;
@@ -45,9 +66,14 @@
         }
 
         iframe {
+            position: relative;
+            z-index: 1;
             width: 100%;
             height: 100%;
             border: none;
+            background-color: transparent;
+            transition: opacity 0.3s ease-in-out; 
+            opacity: 1;
         }
 
         .footer {
@@ -68,26 +94,34 @@
         <div class="info-box">
             <div class="controls">
                 <label for="sat-select"><strong>Select SV: </strong></label>
-                <select id="sat-select" onchange="document.getElementById('plot-iframe').src = this.value">
+                <select id="sat-select" onchange="
+                    var ifr = document.getElementById('plot-iframe');
+                    ifr.style.opacity = '0'; 
+                    setTimeout(function() { ifr.src = document.getElementById('sat-select').value; }, 100);">
                     <option value="plot_E02.html">E02 — 03-03-2025, 06:50 UT</option>
 <option value="plot_G24.html">G24 — 14-03-2025, 20:50 UT</option>
 <option value="plot_G30.html">G30 — 15-03-2025, 05:25 UT</option>
 
                 </select>
             </div>
-            <p><strong>Description:</strong> Schematic representation of the signal propagation path from 
-                GNSS satellites to the receiver located on the lunar surface. 
-                The color scale represents the <strong>electron plasma density</strong>, modeled using the Global 
+            <p><strong>Description:</strong> Schematic representation of the signal propagation path from
+                GNSS satellites to the receiver located on the lunar surface.
+                The color scale represents the <strong>electron plasma density</strong>, modeled using the Global
                 Core Plasma Model (GCPM).
             </p>
             <p style="font-size: 0.8em; opacity: 0.8; line-height: 1.5;">
-                The visualization accounts for the specific Sun-Earth geometry at the time of acquisition: 
+                The visualization accounts for the specific Sun-Earth geometry at the time of acquisition:
                 the Earth's orientation and lighting are rendered based on the Sun's actual position to distinguish between dayside (Moon sunward of Earth) and nightside (Moon located within Earth's magnetosphere) lunar phases.
             </p>
         </div>
 
         <div id="plot-container">
-            <iframe id="plot-iframe" src="plot_E02.html"></iframe>
+            <div class="loader"></div>
+            <iframe id="plot-iframe" 
+                    src="plot_E02.html" 
+                    style="opacity: 1; transition: opacity 0.3s;" 
+                    onload="this.style.opacity='1';">
+            </iframe>
         </div>
 
         <div class="footer">
