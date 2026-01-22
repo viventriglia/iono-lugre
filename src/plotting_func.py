@@ -22,6 +22,15 @@ from cartopy.feature.nightshade import Nightshade
 from typing import Sequence, Union
 
 
+plt.rcParams.update({
+    "font.family": "serif",
+    "font.serif": [
+        "Times New Roman",
+        "Computer Modern Serif",
+        "DejaVu Serif",
+    ],
+})
+
 # ============================================================
 # Helpers
 # ============================================================
@@ -35,15 +44,15 @@ def cartesian_to_latlon(x, y, z):
 def extract_masses(results):
     """
     Accepts either:
-    - list of dicts with key 'ResultM'
-    - list of objects with attribute ResultM
+    - list of dicts with key 'result_tec'
+    - list of objects with attribute result_tec
     """
     masses = []
     for r in results:
-        if hasattr(r, "ResultM"):
-            masses.append(r.ResultM)
+        if hasattr(r, "result_tec"):
+            masses.append(r.result_tec)
         elif isinstance(r, dict):
-            masses.append(r.get("ResultM", np.nan))
+            masses.append(r.get("result_tec", np.nan))
         else:
             masses.append(np.nan)
     return np.asarray(masses, dtype=float)

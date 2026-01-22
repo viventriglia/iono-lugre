@@ -31,9 +31,9 @@ class Subsegment:
 @dataclass
 class SegmentResult:
     """Result container for one segment."""
-    ResultM: float
-    ResultL: Optional[np.ndarray]
-    ResultP: Optional[np.ndarray]
+    result_tec: float
+    result_densities: Optional[np.ndarray]
+    result_positions: Optional[np.ndarray]
 
 
 # ============================================================
