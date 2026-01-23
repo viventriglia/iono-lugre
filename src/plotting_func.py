@@ -35,27 +35,27 @@ plt.rcParams.update({
 # Helpers
 # ============================================================
 
-def cartesian_to_latlon(x, y, z):
-    lon = np.degrees(np.arctan2(y, x))
-    lat = np.degrees(np.arctan2(z, np.hypot(x, y)))
-    return lat, lon
+def cartesian_to_latlon(x_cart, y_cart, z_cart):
+    longitude = np.degrees(np.arctan2(y_cart, x_cart))
+    latitude = np.degrees(np.arctan2(z_cart, np.hypot(x_cart, y_cart)))
+    return latitude, longitude
 
 
-def extract_masses(results):
+def extract_tec_values(results):
     """
     Accepts either:
     - list of dicts with key 'result_tec'
     - list of objects with attribute result_tec
     """
-    masses = []
-    for r in results:
-        if hasattr(r, "result_tec"):
-            masses.append(r.result_tec)
-        elif isinstance(r, dict):
-            masses.append(r.get("result_tec", np.nan))
+    tec_values = []
+    for result in results:
+        if hasattr(result, "tec"):
+            tec_values.append(result.tec)
+        elif isinstance(result, dict):
+            tec_values.append(result.get("tec", np.nan))
         else:
-            masses.append(np.nan)
-    return np.asarray(masses, dtype=float)
+            tec_values.append(np.nan)
+    return np.asarray(tec_values, dtype=float)
 
 
 # ============================================================
@@ -65,7 +65,7 @@ def extract_masses(results):
 def plot_integrated_results(
     results,
     times: Sequence,
-    sel: pd.DataFrame,
+    selection_df: pd.DataFrame,
     *,
     title: str = "",
     left_letter: str = "",
@@ -79,24 +79,24 @@ def plot_integrated_results(
     PLT_PATH: Union[str, Path, None] = None,
 ):
     ALPHA_GRID = 0.4
-    R_EARTH = 6371.0
+    EARTH_RADIUS_KM = 6371.0
 
     # --------------------------------------------------------
     # 1. Data preparation
     # --------------------------------------------------------
 
-    model_tec = extract_masses(results) / 1e16
-    gflc = sel["gflc"].to_numpy()
+    model_tec = extract_tec_values(results) / 1e16
+    gflc_values = selection_df["gflc"].to_numpy()
 
-    shift = model_tec.min() - gflc.min() if len(model_tec) else 0.0
-    gflc_shifted = gflc + shift
+    vertical_shift = model_tec.min() - gflc_values.min() if len(model_tec) else 0.0
+    gflc_shifted = gflc_values + vertical_shift
 
     # --------------------------------------------------------
     # 2. Figure layout
     # --------------------------------------------------------
 
     fig = plt.figure(figsize=(20, 9))
-    gs = GridSpec(
+    grid_spec = GridSpec(
         2, 2,
         height_ratios=[1, 0.05],
         width_ratios=[1, 1.2],
@@ -104,120 +104,130 @@ def plot_integrated_results(
         wspace=0.23
     )
 
-    ax_left = fig.add_subplot(gs[0, 0])
-    ax_map = fig.add_subplot(gs[0, 1], projection=ccrs.PlateCarree())
+    ax_left = fig.add_subplot(grid_spec[0, 0])
+    ax_map = fig.add_subplot(grid_spec[0, 1], projection=ccrs.PlateCarree())
 
     if show_colorbar:
-        cax_left = fig.add_subplot(gs[1, 0])
-        cax_map = fig.add_subplot(gs[1, 1])
+        cax_left = fig.add_subplot(grid_spec[1, 0])
+        cax_map = fig.add_subplot(grid_spec[1, 1])
 
     # --------------------------------------------------------
     # 3. Left panel: TEC + altitude
     # --------------------------------------------------------
 
-    sv_id = title.split("_")[0]
+    satellite_id = title.split("_")[0]
     ax_left.plot(times, model_tec, "k", lw=2, label="Modelled", zorder=10)
-    ax_left.plot(sel["time"], gflc_shifted, "tab:red", lw=2, label="Measured", zorder=10)
+    ax_left.plot(selection_df["time"], gflc_shifted, "tab:red", lw=2,
+                 label="Measured", zorder=10)
 
     ax_left.set_ylabel("TEC [TECu]", fontsize=10 * font_scale)
     ax_left.legend(
         frameon=False,
         loc=legend_loc,
-        title=sv_id,
+        title=satellite_id,
         fontsize=8 * font_scale,
         title_fontsize=8 * font_scale
     )
     ax_left.grid(True, ls="--", alpha=ALPHA_GRID)
 
-    ax_alt = ax_left.twinx()
-    norm_lat = plt.Normalize(vmin=-90, vmax=10)
+    ax_altitude = ax_left.twinx()
+    latitude_norm = plt.Normalize(vmin=-90, vmax=10)
 
-    sc = ax_alt.scatter(
-        sel["time"], sel["alt_ip"],
-        c=sel["lat_ip"],
+    scatter_altitude = ax_altitude.scatter(
+        selection_df["time"], selection_df["alt_ip"],
+        c=selection_df["lat_ip"],
         cmap="YlGnBu",
         s=10,
         alpha=0.9,
-        norm=norm_lat,
+        norm=latitude_norm,
         zorder=1
     )
 
-    ax_alt.set_yscale("log")
-    ax_alt.set_ylabel("Altitude [km]", fontsize=10 * font_scale)
+    ax_altitude.set_yscale("log")
+    ax_altitude.set_ylabel("Altitude [km]", fontsize=10 * font_scale)
 
     if show_colorbar:
-        cb = fig.colorbar(
-            sc,
+        colorbar_left = fig.colorbar(
+            scatter_altitude,
             cax=cax_left,
             orientation="horizontal",
             ticks=np.arange(-90, 11, 20)
         )
-        cb.set_label("Latitude", fontsize=9 * font_scale)
-        cb.ax.xaxis.set_major_formatter(FuncFormatter(lambda x, _: f"{x:.0f}°"))
-        cb.ax.tick_params(labelsize=8 * font_scale)
+        colorbar_left.set_label("Latitude", fontsize=9 * font_scale)
+        colorbar_left.ax.xaxis.set_major_formatter(
+            FuncFormatter(lambda x, _: f"{x:.0f}°")
+        )
+        colorbar_left.ax.tick_params(labelsize=8 * font_scale)
 
-    date_str = sel["time"].dt.date.iloc[0].strftime("%-d %B %Y")
+    date_label = selection_df["time"].dt.date.iloc[0].strftime("%-d %B %Y")
     ax_left.xaxis.set_major_formatter(mdates.DateFormatter("%H:%M"))
-    ax_left.set_xlabel(date_str, fontsize=10 * font_scale)
+    ax_left.set_xlabel(date_label, fontsize=10 * font_scale)
 
     # --------------------------------------------------------
     # 4. Right panel: geodetic rays
     # --------------------------------------------------------
 
-    terminator_date = pd.to_datetime(sel["time"].iloc[len(sel) // 2])
+    terminator_time = pd.to_datetime(selection_df["time"].iloc[len(selection_df) // 2])
     ax_map.set_global()
     ax_map.add_feature(cfeature.LAND, facecolor="#f5f5f5")
     ax_map.add_feature(cfeature.OCEAN, facecolor="#cceeff")
     ax_map.add_feature(cfeature.COASTLINE, linewidth=0.6)
-    ax_map.add_feature(Nightshade(terminator_date, alpha=0.15))
+    ax_map.add_feature(Nightshade(terminator_time, alpha=0.15))
 
-    gl = ax_map.gridlines(draw_labels=True, lw=0.5, color="gray",
-                          alpha=ALPHA_GRID, ls="--")
-    gl.top_labels = gl.right_labels = False
-    gl.xlabel_style = {"size": 9 * font_scale}
-    gl.ylabel_style = {"size": 9 * font_scale}
+    gridlines = ax_map.gridlines(draw_labels=True, lw=0.5, color="gray",
+                                 alpha=ALPHA_GRID, ls="--")
+    gridlines.top_labels = gridlines.right_labels = False
+    gridlines.xlabel_style = {"size": 9 * font_scale}
+    gridlines.ylabel_style = {"size": 9 * font_scale}
 
-    colors = plt.get_cmap("inferno")(np.linspace(0, 0.90, 256))
-    cmap_h = mcolors.LinearSegmentedColormap.from_list("inferno_cut", colors)
-    norm_h = plt.Normalize(vmin=200, vmax=3700)
+    inferno_colors = plt.get_cmap("inferno")(np.linspace(0, 0.90, 256))
+    altitude_cmap = mcolors.LinearSegmentedColormap.from_list(
+        "inferno_cut", inferno_colors
+    )
+    altitude_norm = plt.Normalize(vmin=200, vmax=3700)
 
-    idx = np.linspace(0, len(sel) - 1, n_geodetics, dtype=int)
-    subset = sel.iloc[idx]
+    ray_indices = np.linspace(0, len(selection_df) - 1, n_geodetics, dtype=int)
+    ray_subset = selection_df.iloc[ray_indices]
 
-    for i, row in enumerate(subset.itertuples()):
-        p1 = np.array([row.p1x, row.p1y, row.p1z])
-        p2 = np.array([row.p2x, row.p2y, row.p2z])
-        v = p2 - p1
+    for ray_idx, ray_row in enumerate(ray_subset.itertuples()):
+        ray_start = np.array([ray_row.p1x, ray_row.p1y, ray_row.p1z])
+        ray_end = np.array([ray_row.p2x, ray_row.p2y, ray_row.p2z])
+        ray_vector = ray_end - ray_start
 
-        u = np.linspace(0, 1, 50)
-        pts = p1 + u[:, None] * v
-        lat, lon = cartesian_to_latlon(pts[:, 0], pts[:, 1], pts[:, 2])
-        h = np.linalg.norm(pts, axis=1) - R_EARTH
+        ray_param = np.linspace(0, 1, 50)
+        ray_points = ray_start + ray_param[:, None] * ray_vector
+        latitudes, longitudes = cartesian_to_latlon(
+            ray_points[:, 0], ray_points[:, 1], ray_points[:, 2]
+        )
+        altitudes = np.linalg.norm(ray_points, axis=1) - EARTH_RADIUS_KM
 
-        for j in range(len(lon) - 1):
+        for seg_idx in range(len(longitudes) - 1):
             ax_map.plot(
-                lon[j:j+2], lat[j:j+2],
-                color=cmap_h(norm_h(0.5 * (h[j] + h[j+1]))),
+                longitudes[seg_idx:seg_idx + 2],
+                latitudes[seg_idx:seg_idx + 2],
+                color=altitude_cmap(
+                    altitude_norm(0.5 * (altitudes[seg_idx] + altitudes[seg_idx + 1]))
+                ),
                 linewidth=1.5,
                 transform=ccrs.Geodetic()
             )
 
-        if i % label_every == 0:
-            lt = pd.to_datetime(row.lt_ip).strftime("%H:%M")
-            ut = pd.to_datetime(row.ut_time).strftime("%H:%M")
-            ax_map.text(lon[0], lat[0], lt,
+        if ray_idx % label_every == 0:
+            local_time = pd.to_datetime(ray_row.lt_ip).strftime("%H:%M")
+            universal_time = pd.to_datetime(ray_row.ut_time).strftime("%H:%M")
+            ax_map.text(longitudes[0], latitudes[0], local_time,
                         fontsize=7 * font_scale,
                         ha="right", va="bottom",
                         transform=ccrs.PlateCarree())
-            ax_map.text(lon[-1], lat[-1], ut,
+            ax_map.text(longitudes[-1], latitudes[-1], universal_time,
                         fontsize=7 * font_scale,
                         ha="left", va="bottom",
                         transform=ccrs.PlateCarree())
 
-        u_tp = -np.dot(p1, v) / np.dot(v, v)
-        if 0.0 <= u_tp <= 1.0:
-            tp = p1 + u_tp * v
-            lat_tp, lon_tp = cartesian_to_latlon(*tp)
+        tangent_param = -np.dot(ray_start, ray_vector) / np.dot(ray_vector, ray_vector)
+        if 0.0 <= tangent_param <= 1.0:
+            tangent_point = ray_start + tangent_param * ray_vector
+            lat_tp, lon_tp = cartesian_to_latlon(*tangent_point)
             ax_map.plot(lon_tp, lat_tp, "ko", ms=3.25,
                         transform=ccrs.Geodetic())
 
@@ -249,15 +259,19 @@ def plot_integrated_results(
         cax_map.set_position([map_pos.x0, map_pos.y0 - 0.11,
                               map_pos.width, 0.03])
 
-        sm = plt.cm.ScalarMappable(cmap=cmap_h, norm=norm_h)
-        cbm = fig.colorbar(sm, cax=cax_map, orientation="horizontal")
-        cbm.set_label("Local height [km]", fontsize=9 * font_scale)
-        cbm.ax.tick_params(labelsize=8 * font_scale)
+        scalar_mappable = plt.cm.ScalarMappable(
+            cmap=altitude_cmap, norm=altitude_norm
+        )
+        colorbar_map = fig.colorbar(
+            scalar_mappable, cax=cax_map, orientation="horizontal"
+        )
+        colorbar_map.set_label("Local height [km]", fontsize=9 * font_scale)
+        colorbar_map.ax.tick_params(labelsize=8 * font_scale)
 
-    for ax in (ax_left, ax_alt):
-        for side in ax.spines.values():
+    for axis in (ax_left, ax_altitude):
+        for side in axis.spines.values():
             side.set_linewidth(0.5)
-        ax.tick_params(labelsize=9 * font_scale)
+        axis.tick_params(labelsize=9 * font_scale)
 
     if save and PLT_PATH is not None:
         PLT_PATH = Path(PLT_PATH)

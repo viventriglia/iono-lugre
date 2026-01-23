@@ -3,6 +3,7 @@
 [![Interactive Dashboard](https://img.shields.io/badge/3D-GNSS%20raypath%20&%20plasma%20simulations-191970)](https://viventriglia.github.io/iono-lugre/)
 
 Official repository for the paper <i>Observing the Earth’s Plasmasphere and Ionosphere from the Lunar Surface</i> (Cesaroni et al. 2026, submitted to <i>Geophysical Research Letters</i>).
+Read the preprint here: </b> https://doi.org/10.22541/essoar.176902858.83882772/v1</b>
 
 ## Overview
 
@@ -25,6 +26,7 @@ This project leverages data from the <b>Lunar GNSS Receiver Experiment</b> (<b>[
 .
 ├── assets/               # Images, etc.
 ├── docs/                 # GitHub Pages source (interactive HTML plots)
+├── src/                  # Functions for the processing and plotting of LuGRE data
 ├── GCPM_vs_LuGRE.ipynb   # Notebook to reproduce paper results
 ├── LICENSE               # GNU GPL license
 ├── requirements.txt      # Dependencies

@@ -2,8 +2,9 @@
 utils_func.py
 
 General-purpose utilities:
-- ArcID parsing
-- Geomagnetic Kp extraction
+- GNSS ArcID parsing and constellation inference
+- Geomagnetic Kp index extraction
+- Ray tangent-point computation
 """
 
 from __future__ import annotations
@@ -15,12 +16,12 @@ from typing import Tuple, Union
 
 
 # ============================================================
-# ArcID utilities
+# GNSS ArcID utilities
 # ============================================================
 
-def parse_arc_id(arc_id: str) -> Tuple[str, str]:
+def parse_gnss_arc_id(arc_id: str) -> Tuple[str, str]:
     """
-    Parse ArcID and infer GNSS constellation.
+    Parse a GNSS ArcID and infer the satellite constellation.
 
     Parameters
     ----------
@@ -29,56 +30,56 @@ def parse_arc_id(arc_id: str) -> Tuple[str, str]:
 
     Returns
     -------
-    sv_id : str
-        Satellite ID (e.g. 'G30')
+    satellite_id : str
+        Satellite identifier (e.g. 'G30')
     constellation : str
-        'GPS', 'Galileo', or 'unknown'
+        GNSS constellation name ('GPS', 'Galileo', or 'unknown')
     """
-    sv_id = arc_id.split("_")[0]
+    satellite_id = arc_id.split("_")[0]
 
-    if sv_id.startswith("E"):
-        return sv_id, "Galileo"
-    if sv_id.startswith("G"):
-        return sv_id, "GPS"
+    if satellite_id.startswith("E"):
+        return satellite_id, "Galileo"
+    if satellite_id.startswith("G"):
+        return satellite_id, "GPS"
 
-    return sv_id, "unknown"
+    return satellite_id, "unknown"
 
 
 # ============================================================
-# Kp utilities
+# Geomagnetic Kp utilities
 # ============================================================
 
-def kp_extraction_function(
-    date_str: str,
-    file_path: Union[str, Path],
+def extract_kp_index(
+    utc_time_str: str,
+    kp_file_path: Union[str, Path],
 ) -> float:
     """
-    Extract Kp index for a given UTC time from a standard Kp file.
+    Extract the geomagnetic Kp index for a given UTC time.
 
-    Kp values are defined in 3-hour bins.
+    Kp values are defined in fixed 3-hour UT intervals.
 
     Parameters
     ----------
-    date_str : str
+    utc_time_str : str
         UTC time in format '%Y-%m-%d %H:%M:%S'
-    file_path : str or Path
-        Path to Kp_ap_since_1932.txt
+    kp_file_path : str or Path
+        Path to the standard Kp file (e.g. 'Kp_ap_since_1932.txt')
 
     Returns
     -------
     float
         Kp value for the corresponding 3-hour interval.
-        Returns 0.0 if not found.
+        Returns 0.0 if the interval is not found.
     """
-    file_path = Path(file_path)
+    kp_file_path = Path(kp_file_path)
 
-    if not file_path.exists():
-        raise FileNotFoundError(f"Kp file not found: {file_path}")
+    if not kp_file_path.exists():
+        raise FileNotFoundError(f"Kp file not found: {kp_file_path}")
 
-    dt = datetime.strptime(date_str, "%Y-%m-%d %H:%M:%S")
-    interval_start_hour = (dt.hour // 3) * 3
+    dt = datetime.strptime(utc_time_str, "%Y-%m-%d %H:%M:%S")
+    interval_hour = (dt.hour // 3) * 3
 
-    with file_path.open("r") as f:
+    with kp_file_path.open("r") as f:
         for line in f:
             if not line or line.startswith("#"):
                 continue
@@ -96,7 +97,7 @@ def kp_extraction_function(
                 year == dt.year
                 and month == dt.month
                 and day == dt.day
-                and hour == interval_start_hour
+                and hour == interval_hour
             ):
                 return float(parts[7])  # Kp column
 
@@ -104,43 +105,47 @@ def kp_extraction_function(
 
 
 # ============================================================
-# tangent point calculation
+# Ray tangent-point geometry
 # ============================================================
 
-def calculate_tangent_points(
-    df,
+def compute_ray_tangent_points(
+    ray_dataframe,
     *,
-    R_Earth_km: float = 6371.0,
+    earth_radius_km: float = 6371.0,
 ) -> Tuple[np.ndarray, np.ndarray]:
     """
     Compute tangent (closest-approach) points of rays to Earth's center.
 
+    Each ray is defined by two Cartesian points (p1 → p2).
+    The tangent point is computed along the infinite line.
+
     Parameters
     ----------
-    df : pandas.DataFrame
-        Must contain columns p1x,p1y,p1z,p2x,p2y,p2z (km)
-    R_Earth_km : float
-        Earth radius in km
+    ray_dataframe : pandas.DataFrame
+        Must contain columns:
+        p1x, p1y, p1z, p2x, p2y, p2z (Cartesian GEO, km)
+    earth_radius_km : float, optional
+        Earth radius in km (default: 6371.0)
 
     Returns
     -------
-    tp_coords : (N,3) ndarray
-        Tangent point Cartesian coordinates (km)
-    tp_height : (N,) ndarray
-        Tangent point altitude above Earth (km)
+    tangent_points : (N, 3) ndarray
+        Cartesian coordinates of tangent points (km)
+    tangent_altitudes : (N,) ndarray
+        Tangent-point altitudes above Earth's surface (km)
     """
-    p1 = df[["p1x", "p1y", "p1z"]].to_numpy()
-    p2 = df[["p2x", "p2y", "p2z"]].to_numpy()
+    p_start = ray_dataframe[["p1x", "p1y", "p1z"]].to_numpy()
+    p_end = ray_dataframe[["p2x", "p2y", "p2z"]].to_numpy()
 
-    v = p2 - p1
+    ray_vectors = p_end - p_start
 
-    dot_p1_v = np.einsum("ij,ij->i", p1, v)
-    dot_v_v = np.einsum("ij,ij->i", v, v)
+    dot_p_start_v = np.einsum("ij,ij->i", p_start, ray_vectors)
+    dot_v_v = np.einsum("ij,ij->i", ray_vectors, ray_vectors)
 
-    # projection parameter (infinite line)
-    u = -dot_p1_v / dot_v_v
+    # Projection parameter along the infinite line
+    u = -dot_p_start_v / dot_v_v
 
-    tp = p1 + u[:, None] * v
-    tp_height = np.linalg.norm(tp, axis=1) - R_Earth_km
+    tangent_points = p_start + u[:, None] * ray_vectors
+    tangent_altitudes = np.linalg.norm(tangent_points, axis=1) - earth_radius_km
 
-    return tp, tp_height
+    return tangent_points, tangent_altitudes
