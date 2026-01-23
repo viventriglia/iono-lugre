@@ -50,7 +50,7 @@ def extract_tec_values(results):
     tec_values = []
     for result in results:
         if hasattr(result, "tec"):
-            tec_values.append(result.result_tec)
+            tec_values.append(result.tec)
         elif isinstance(result, dict):
             tec_values.append(result.get("tec", np.nan))
         else:
