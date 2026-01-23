@@ -25,6 +25,7 @@ This project leverages data from the <b>Lunar GNSS Receiver Experiment</b> (<b>[
 .
 ├── assets/               # Images, etc.
 ├── docs/                 # GitHub Pages source (interactive HTML plots)
+├── src/                  # Functions for the processing and plotting of LuGRE data
 ├── GCPM_vs_LuGRE.ipynb   # Notebook to reproduce paper results
 ├── LICENSE               # GNU GPL license
 ├── requirements.txt      # Dependencies
