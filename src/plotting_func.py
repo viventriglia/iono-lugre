@@ -242,7 +242,6 @@ def plot_integrated_results(
                 transform=ccrs.Geodetic()
             )
 
-        tp = tangent_points[idx]
         lat_tp, lon_tp = tp_lat[idx], tp_lon[idx]
 
         ut = times_ray[idx]
