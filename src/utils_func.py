@@ -108,7 +108,7 @@ def extract_kp_index(
 # Ray tangent-point geometry
 # ============================================================
 
-def compute_ray_tangent_points_from_segments(
+def compute_ray_tangent_points(
     ray_segments,
     *,
     earth_radius_km: float = 6371.0,
