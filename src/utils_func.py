@@ -108,41 +108,38 @@ def extract_kp_index(
 # Ray tangent-point geometry
 # ============================================================
 
-def compute_ray_tangent_points(
-    ray_dataframe,
+def compute_ray_tangent_points_from_segments(
+    ray_segments,
     *,
     earth_radius_km: float = 6371.0,
-) -> Tuple[np.ndarray, np.ndarray]:
+):
     """
     Compute tangent (closest-approach) points of rays to Earth's center.
 
-    Each ray is defined by two Cartesian points (p1 → p2).
-    The tangent point is computed along the infinite line.
-
     Parameters
     ----------
-    ray_dataframe : pandas.DataFrame
-        Must contain columns:
-        p1x, p1y, p1z, p2x, p2y, p2z (Cartesian GEO, km)
+    ray_segments : list of tuples
+        Each element is (ray_start, ray_end), both 3-element sequences [km].
     earth_radius_km : float, optional
         Earth radius in km (default: 6371.0)
 
     Returns
     -------
     tangent_points : (N, 3) ndarray
-        Cartesian coordinates of tangent points (km)
+        Cartesian coordinates of tangent points [km]
     tangent_altitudes : (N,) ndarray
-        Tangent-point altitudes above Earth's surface (km)
+        Tangent-point altitudes above Earth's surface [km]
     """
-    p_start = ray_dataframe[["p1x", "p1y", "p1z"]].to_numpy()
-    p_end = ray_dataframe[["p2x", "p2y", "p2z"]].to_numpy()
+
+    p_start = np.array([seg[0] for seg in ray_segments])
+    p_end   = np.array([seg[1] for seg in ray_segments])
 
     ray_vectors = p_end - p_start
 
     dot_p_start_v = np.einsum("ij,ij->i", p_start, ray_vectors)
-    dot_v_v = np.einsum("ij,ij->i", ray_vectors, ray_vectors)
+    dot_v_v       = np.einsum("ij,ij->i", ray_vectors, ray_vectors)
 
-    # Projection parameter along the infinite line
+    # Projection parameter along infinite line
     u = -dot_p_start_v / dot_v_v
 
     tangent_points = p_start + u[:, None] * ray_vectors
