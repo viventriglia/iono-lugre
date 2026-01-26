@@ -313,6 +313,8 @@ def plot_integrated_results(
     if save and PLT_PATH is not None:
         PLT_PATH = Path(PLT_PATH)
         PLT_PATH.mkdir(parents=True, exist_ok=True)
+        out_path = PLT_PATH / f"{title}.png"
+        print("Saving to:", out_path)
         fig.savefig(PLT_PATH / f"{title}.png", dpi=400, bbox_inches="tight")
 
     plt.show()
