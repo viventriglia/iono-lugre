@@ -97,6 +97,13 @@ def plot_integrated_results(
 
     times_ray = pd.to_datetime(times)
 
+    # Tangent-point latitude for coloring
+    tp_lat, tp_lon = cartesian_to_latlon(
+        tangent_points[:, 0],
+        tangent_points[:, 1],
+        tangent_points[:, 2],
+    )
+
     # --------------------------------------------------------
     # 2. Figure layout
     # --------------------------------------------------------
@@ -118,7 +125,7 @@ def plot_integrated_results(
         cax_map = fig.add_subplot(grid_spec[1, 1])
 
     # --------------------------------------------------------
-    # 3. Left panel: TEC + tangent altitude
+    # 3. Left panel: TEC + tangent altitude (colored by latitude)
     # --------------------------------------------------------
 
     satellite_id = title.split("_")[0]
@@ -138,11 +145,14 @@ def plot_integrated_results(
 
     ax_altitude = ax_left.twinx()
 
+    latitude_norm = plt.Normalize(vmin=-90, vmax=10)
+
     scatter_altitude = ax_altitude.scatter(
         times_ray,
         tangent_altitudes,
-        c=tangent_altitudes,
-        cmap="inferno",
+        c=tp_lat,
+        cmap="YlGnBu",
+        norm=latitude_norm,
         s=12,
         alpha=0.9,
         zorder=2
@@ -156,8 +166,12 @@ def plot_integrated_results(
             scatter_altitude,
             cax=cax_left,
             orientation="horizontal",
+            ticks=np.arange(-90, 11, 20)
         )
-        colorbar_left.set_label("Tangent altitude [km]", fontsize=9 * font_scale)
+        colorbar_left.set_label("Latitude", fontsize=9 * font_scale)
+        colorbar_left.ax.xaxis.set_major_formatter(
+            FuncFormatter(lambda x, _: f"{x:.0f}°")
+        )
         colorbar_left.ax.tick_params(labelsize=8 * font_scale)
 
     date_label = selection_df["time"].dt.date.iloc[0].strftime("%-d %B %Y")
@@ -186,9 +200,8 @@ def plot_integrated_results(
     altitude_cmap = mcolors.LinearSegmentedColormap.from_list(
         "inferno_cut", inferno_colors
     )
-    altitude_norm = plt.Normalize(vmin=200, vmax=max_plot_alt_km)
+    altitude_norm = plt.Normalize(vmin=0, vmax=max_plot_alt_km)
 
-    # Ray subsampling
     ray_indices = np.linspace(0, len(ray_segments) - 1, n_geodetics, dtype=int)
 
     for ray_idx, idx in enumerate(ray_indices):
@@ -198,7 +211,7 @@ def plot_integrated_results(
         ray_end = np.asarray(ray_end)
         ray_vector = ray_end - ray_start
 
-        ray_param = np.linspace(0, 1, 300)
+        ray_param = np.linspace(0, 1, 5000)
         ray_points = ray_start + ray_param[:, None] * ray_vector
 
         altitudes = np.linalg.norm(ray_points, axis=1) - EARTH_RADIUS_KM
@@ -230,7 +243,7 @@ def plot_integrated_results(
             )
 
         tp = tangent_points[idx]
-        lat_tp, lon_tp = cartesian_to_latlon(*tp)
+        lat_tp, lon_tp = tp_lat[idx], tp_lon[idx]
 
         ut = times_ray[idx]
         lt_tp = ut + pd.to_timedelta(lon_tp / 15.0, unit="h")
