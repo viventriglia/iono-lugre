@@ -67,6 +67,9 @@ def plot_integrated_results(
     times: Sequence,
     selection_df: pd.DataFrame,
     *,
+    ray_segments,
+    tangent_points,
+    tangent_altitudes,
     title: str = "",
     left_letter: str = "",
     right_letter: str = "",
@@ -76,6 +79,7 @@ def plot_integrated_results(
     n_geodetics: int = 15,
     label_every: int = 2,
     legend_loc: str = "best",
+    max_plot_alt_km: float = 3500.0,
     PLT_PATH: Union[str, Path, None] = None,
 ):
     ALPHA_GRID = 0.4
@@ -90,6 +94,15 @@ def plot_integrated_results(
 
     vertical_shift = model_tec.min() - gflc_values.min() if len(model_tec) else 0.0
     gflc_shifted = gflc_values + vertical_shift
+
+    times_ray = pd.to_datetime(times)
+
+    # Tangent-point latitude for coloring
+    tp_lat, tp_lon = cartesian_to_latlon(
+        tangent_points[:, 0],
+        tangent_points[:, 1],
+        tangent_points[:, 2],
+    )
 
     # --------------------------------------------------------
     # 2. Figure layout
@@ -112,7 +125,7 @@ def plot_integrated_results(
         cax_map = fig.add_subplot(grid_spec[1, 1])
 
     # --------------------------------------------------------
-    # 3. Left panel: TEC + altitude
+    # 3. Left panel: TEC + tangent altitude (colored by latitude)
     # --------------------------------------------------------
 
     satellite_id = title.split("_")[0]
@@ -131,20 +144,22 @@ def plot_integrated_results(
     ax_left.grid(True, ls="--", alpha=ALPHA_GRID)
 
     ax_altitude = ax_left.twinx()
+
     latitude_norm = plt.Normalize(vmin=-90, vmax=10)
 
     scatter_altitude = ax_altitude.scatter(
-        selection_df["time"], selection_df["alt_ip"],
-        c=selection_df["lat_ip"],
+        times_ray,
+        tangent_altitudes,
+        c=tp_lat,
         cmap="YlGnBu",
-        s=10,
-        alpha=0.9,
         norm=latitude_norm,
-        zorder=1
+        s=12,
+        alpha=0.9,
+        zorder=2
     )
 
     ax_altitude.set_yscale("log")
-    ax_altitude.set_ylabel("Altitude [km]", fontsize=10 * font_scale)
+    ax_altitude.set_ylabel("Tangent altitude [km]", fontsize=10 * font_scale)
 
     if show_colorbar:
         colorbar_left = fig.colorbar(
@@ -164,10 +179,11 @@ def plot_integrated_results(
     ax_left.set_xlabel(date_label, fontsize=10 * font_scale)
 
     # --------------------------------------------------------
-    # 4. Right panel: geodetic rays
+    # 4. Right panel: geodetic rays + tangent points
     # --------------------------------------------------------
 
-    terminator_time = pd.to_datetime(selection_df["time"].iloc[len(selection_df) // 2])
+    terminator_time = times_ray[len(times_ray) // 2]
+
     ax_map.set_global()
     ax_map.add_feature(cfeature.LAND, facecolor="#f5f5f5")
     ax_map.add_feature(cfeature.OCEAN, facecolor="#cceeff")
@@ -184,52 +200,73 @@ def plot_integrated_results(
     altitude_cmap = mcolors.LinearSegmentedColormap.from_list(
         "inferno_cut", inferno_colors
     )
-    altitude_norm = plt.Normalize(vmin=200, vmax=3700)
+    altitude_norm = plt.Normalize(vmin=0, vmax=max_plot_alt_km)
 
-    ray_indices = np.linspace(0, len(selection_df) - 1, n_geodetics, dtype=int)
-    ray_subset = selection_df.iloc[ray_indices]
+    ray_indices = np.linspace(0, len(ray_segments) - 1, n_geodetics, dtype=int)
 
-    for ray_idx, ray_row in enumerate(ray_subset.itertuples()):
-        ray_start = np.array([ray_row.p1x, ray_row.p1y, ray_row.p1z])
-        ray_end = np.array([ray_row.p2x, ray_row.p2y, ray_row.p2z])
+    for ray_idx, idx in enumerate(ray_indices):
+
+        ray_start, ray_end = ray_segments[idx]
+        ray_start = np.asarray(ray_start)
+        ray_end = np.asarray(ray_end)
         ray_vector = ray_end - ray_start
 
-        ray_param = np.linspace(0, 1, 50)
+        ray_param = np.linspace(0, 1, 5000)
         ray_points = ray_start + ray_param[:, None] * ray_vector
-        latitudes, longitudes = cartesian_to_latlon(
-            ray_points[:, 0], ray_points[:, 1], ray_points[:, 2]
-        )
+
         altitudes = np.linalg.norm(ray_points, axis=1) - EARTH_RADIUS_KM
+        valid = altitudes <= max_plot_alt_km
+
+        if np.sum(valid) < 2:
+            continue
+
+        ray_points = ray_points[valid]
+        altitudes = altitudes[valid]
+
+        latitudes, longitudes = cartesian_to_latlon(
+            ray_points[:, 0],
+            ray_points[:, 1],
+            ray_points[:, 2]
+        )
 
         for seg_idx in range(len(longitudes) - 1):
             ax_map.plot(
                 longitudes[seg_idx:seg_idx + 2],
                 latitudes[seg_idx:seg_idx + 2],
                 color=altitude_cmap(
-                    altitude_norm(0.5 * (altitudes[seg_idx] + altitudes[seg_idx + 1]))
+                    altitude_norm(
+                        0.5 * (altitudes[seg_idx] + altitudes[seg_idx + 1])
+                    )
                 ),
                 linewidth=1.5,
                 transform=ccrs.Geodetic()
             )
 
-        if ray_idx % label_every == 0:
-            local_time = pd.to_datetime(ray_row.lt_ip).strftime("%H:%M")
-            universal_time = pd.to_datetime(ray_row.ut_time).strftime("%H:%M")
-            ax_map.text(longitudes[0], latitudes[0], local_time,
-                        fontsize=7 * font_scale,
-                        ha="right", va="bottom",
-                        transform=ccrs.PlateCarree())
-            ax_map.text(longitudes[-1], latitudes[-1], universal_time,
-                        fontsize=7 * font_scale,
-                        ha="left", va="bottom",
-                        transform=ccrs.PlateCarree())
+        lat_tp, lon_tp = tp_lat[idx], tp_lon[idx]
 
-        tangent_param = -np.dot(ray_start, ray_vector) / np.dot(ray_vector, ray_vector)
-        if 0.0 <= tangent_param <= 1.0:
-            tangent_point = ray_start + tangent_param * ray_vector
-            lat_tp, lon_tp = cartesian_to_latlon(*tangent_point)
-            ax_map.plot(lon_tp, lat_tp, "ko", ms=3.25,
-                        transform=ccrs.Geodetic())
+        ut = times_ray[idx]
+        lt_tp = ut + pd.to_timedelta(lon_tp / 15.0, unit="h")
+
+        ax_map.plot(
+            lon_tp, lat_tp, "ko", ms=3.5,
+            transform=ccrs.Geodetic()
+        )
+
+        if ray_idx % label_every == 0:
+            ax_map.text(
+                longitudes[0], latitudes[0],
+                lt_tp.strftime("%H:%M"),
+                fontsize=7 * font_scale,
+                ha="right", va="bottom",
+                transform=ccrs.PlateCarree()
+            )
+            ax_map.text(
+                longitudes[-1], latitudes[-1],
+                ut.strftime("%H:%M"),
+                fontsize=7 * font_scale,
+                ha="left", va="bottom",
+                transform=ccrs.PlateCarree()
+            )
 
     # --------------------------------------------------------
     # 5. Layout alignment and labels
@@ -276,6 +313,8 @@ def plot_integrated_results(
     if save and PLT_PATH is not None:
         PLT_PATH = Path(PLT_PATH)
         PLT_PATH.mkdir(parents=True, exist_ok=True)
+        out_path = PLT_PATH / f"{title}.png"
+        print("Saving to:", out_path)
         fig.savefig(PLT_PATH / f"{title}.png", dpi=400, bbox_inches="tight")
 
     plt.show()
