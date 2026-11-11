@@ -1,0 +1,5 @@
+arc,epochs,published_min,published_max,published_last,recomputed_min,recomputed_max,recomputed_last,max_ratio_recomputed_over_published,gflc_shift_published,gflc_shift_recomputed,rms_model_minus_gflc_published,rms_model_minus_gflc_recomputed,max_audit_err
+E02_OP38_100,136,3.408,41.658,16.397,5.938,52.736,16.703,1.742,-1.537,0.993,4.259,7.438,0.000
+E26_OP38_100,111,2.337,18.023,2.337,4.648,21.043,4.648,2.177,-2.663,-0.352,5.073,7.717,0.000
+G24_OP74_100,137,1.372,141.598,1.372,1.642,237.018,1.642,1.800,-3.628,-3.358,18.153,20.470,0.000
+G30_OP74_102,137,6.134,200.115,6.134,16.149,272.874,44.258,7.216,-38.688,-28.673,18.940,34.348,0.000
