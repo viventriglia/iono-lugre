@@ -20,12 +20,24 @@ This project leverages data from the <b>Lunar GNSS Receiver Experiment</b> (<b>[
 
 - <b>Lunar Observatory</b>: This project demonstrates that the Moon is an ideal location for permanent Space Weather observatories improving safety of space technology.
 
+## Corrections
+
+<b>v0.2.0 (November 2026).</b> The GCPM slant-TEC curves in Figure 3 of the preprint were affected by two bugs in PyGCPM:
+
+- IRI's solar-index arrays overflowed with a current `ig_rz.dat`, so IG12 was read as about 10 instead of about 113.
+- The Python wrapper passed the year as the day of year, so every epoch was modelled as 25 January 2027.
+
+The LuGRE observations are not affected. This release pins a fixed PyGCPM fork ([mguerra96/PyGCPM@f8464a4](https://github.com/mguerra96/PyGCPM/commit/f8464a4a58983356144b36208a552b5f5cd74a01)), which also ships the current IRI index files (`ig_rz.dat` dated 19 Dec 2025, and `ap.dat`). The corrected curves and the full analysis are in [`fig3_recomputed/`](fig3_recomputed/REPORT.md). We thank the external researcher who reported the discrepancy.
+
+The interactive 3D plots in `docs/` were produced with the earlier PyGCPM build and have not yet been regenerated.
+
 ## Repository Structure
 
 ```bash
 .
 ├── assets/               # Images, etc.
 ├── docs/                 # GitHub Pages source (interactive HTML plots)
+├── fig3_recomputed/      # Corrected Figure 3 GCPM curves and the bug report (v0.2.0)
 ├── src/                  # Functions for the processing and plotting of LuGRE data
 ├── GCPM_vs_LuGRE.ipynb   # Notebook to reproduce paper results
 ├── LICENSE               # GNU GPL license
