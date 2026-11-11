@@ -457,7 +457,7 @@ PyDrive2==1.21.3
 pydub==0.25.1
 pyerfa==2.0.1.5
 pygame==2.6.1
--e git+https://github.com/mguerra96/PyGCPM@330bfc4e48351bd3f6796569f6ea6ce2c664db9b#egg=PyGCPM
+-e git+https://github.com/mguerra96/PyGCPM@f8464a4a58983356144b36208a552b5f5cd74a01#egg=PyGCPM
 pygit2==1.19.0
 Pygments==2.19.2
 PyGObject==3.48.2

@@ -27,7 +27,7 @@ This project leverages data from the <b>Lunar GNSS Receiver Experiment</b> (<b>[
 - IRI's solar-index arrays overflowed with a current `ig_rz.dat`, so IG12 was read as about 10 instead of about 113.
 - The Python wrapper passed the year as the day of year, so every epoch was modelled as 25 January 2027.
 
-The LuGRE observations are not affected. This release pins a fixed PyGCPM fork ([mguerra96/PyGCPM@330bfc4](https://github.com/mguerra96/PyGCPM/commit/330bfc4e48351bd3f6796569f6ea6ce2c664db9b)). The corrected curves and the full analysis are in [`fig3_recomputed/`](fig3_recomputed/REPORT.md). We thank the external researcher who reported the discrepancy.
+The LuGRE observations are not affected. This release pins a fixed PyGCPM fork ([mguerra96/PyGCPM@f8464a4](https://github.com/mguerra96/PyGCPM/commit/f8464a4a58983356144b36208a552b5f5cd74a01)), which also ships the current IRI index files (`ig_rz.dat` dated 19 Dec 2025, and `ap.dat`). The corrected curves and the full analysis are in [`fig3_recomputed/`](fig3_recomputed/REPORT.md). We thank the external researcher who reported the discrepancy.
 
 The interactive 3D plots in `docs/` were produced with the earlier PyGCPM build and have not yet been regenerated.
 

@@ -163,7 +163,7 @@ python recompute_fig3.py gcpm_driver/drv_sm1024 <libpath with iri/ig_rz.dat, iri
 
 Python needs numpy, pandas, matplotlib and spacepy. A full run of the four arcs took about 6 hours on a laptop (with the control running at the same time), because the driver is started once per epoch.
 
-**Through the notebook (v0.2.0 onward).** The repository's `GCPM_vs_LuGRE.ipynb` and `requirements.txt` now pin the fixed fork [mguerra96/PyGCPM@330bfc4](https://github.com/mguerra96/PyGCPM/commit/330bfc4e48351bd3f6796569f6ea6ce2c664db9b), which contains both fixes plus the `setLibPath` one. Its Python wrapper reproduces this recomputation exactly on the two key rays:
+**Through the notebook (v0.2.0 onward).** The repository's `GCPM_vs_LuGRE.ipynb` and `requirements.txt` now pin the fixed fork [mguerra96/PyGCPM@f8464a4](https://github.com/mguerra96/PyGCPM/commit/f8464a4a58983356144b36208a552b5f5cd74a01), which contains both fixes plus the `setLibPath` one. It also ships the `ig_rz.dat` and `ap.dat` used here (MD5s above), so it runs without the shared-drive files. Its Python wrapper, built from a clean copy with only those bundled files, reproduces this recomputation exactly on the two key rays:
 
 | Ray | Fork wrapper | This recomputation |
 |---|---|---|
